@@ -72,7 +72,7 @@ if __name__ == "__main__":
     assert all(gptq_method.quantizer.zero == ldl_method.quantizer.zero)
     assert gptq_method.quantizer.maxq == ldl_method.quantizer.maxq
 
-    print('=========== OPTQ vs. LDL Quant Weight Error ==================')
+    print('=========== GPTQ vs. LDL Quant Weight Error ==================')
     err = (layer_gptq.weight - layer_ldl.weight).abs()
     err[layer_gptq.weight == layer_ldl.weight] = 0
     print(f"max elementwise difference: {err.max():.3f}")
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     print(f"frac less than 1e-6 apart: {torch.sum((layer_gptq.weight - layer_ldl.weight).abs() < 1e-6) / (layer.H.shape[0]*layer.H.shape[1]):.3f}")
     print(f"frac less than 1e-3 apart: {torch.sum((layer_gptq.weight - layer_ldl.weight).abs() < 1e-3) / (layer.H.shape[0]*layer.H.shape[1]):.3f}")
 
-    print('=========== OPTQ vs. Nearest Quant Weight Error ==================')
+    print('=========== GPTQ vs. Nearest Quant Weight Error ==================')
     err = (layer_gptq.weight - layer_near.weight).abs()
     err[layer_gptq.weight == layer_near.weight] = 0
     print(f"max elementwise difference: {err.max():.3f}")

@@ -11,69 +11,16 @@ from quant import *
 
 from tqdm import tqdm
 
-from opt import get_opt
+from llama import get_llama
 
 
 @torch.no_grad()
-def opt_sequential_proxy(model, dev, args, proxy_layers, load_H):
+def llama_sequential_proxy(model, dev, args, proxy_layers, load_H):
     print('Starting ...')
 
     use_cache = model.config.use_cache
     model.config.use_cache = False
-    layers = model.model.decoder.layers
-
-    # model.model.decoder.embed_tokens = model.model.decoder.embed_tokens.to(dev)
-    # model.model.decoder.embed_positions = model.model.decoder.embed_positions.to(
-    #     dev)
-    # if hasattr(model.model.decoder,
-    #            'project_out') and model.model.decoder.project_out:
-    #     model.model.decoder.project_out = model.model.decoder.project_out.to(
-    #         dev)
-    # if hasattr(model.model.decoder,
-    #            'project_in') and model.model.decoder.project_in:
-    #     model.model.decoder.project_in = model.model.decoder.project_in.to(dev)
-    # layers[0] = layers[0].to(dev)
-
-    # dtype = next(iter(model.parameters())).dtype
-    # inps = torch.zeros((args.nsamples, model.seqlen, model.config.hidden_size),
-    #                    dtype=dtype,
-    #                    device=dev)
-    # cache = {'i': 0, 'attention_mask': None}
-
-    # class Catcher(nn.Module):
-
-    #     def __init__(self, module):
-    #         super().__init__()
-    #         self.module = module
-
-    #     def forward(self, inp, **kwargs):
-    #         inps[cache['i']] = inp
-    #         cache['i'] += 1
-    #         cache['attention_mask'] = kwargs['attention_mask']
-    #         raise ValueError
-
-    # layers[0] = Catcher(layers[0])
-    # for batch in dataloader:
-    #     try:
-    #         model(batch[0].to(dev))
-    #     except ValueError:
-    #         pass
-    # layers[0] = layers[0].module
-
-    # layers[0] = layers[0].cpu()
-    # model.model.decoder.embed_tokens = model.model.decoder.embed_tokens.cpu()
-    # model.model.decoder.embed_positions = model.model.decoder.embed_positions.cpu(
-    # )
-    # if hasattr(model.model.decoder,
-    #            'project_out') and model.model.decoder.project_out:
-    #     model.model.decoder.project_out = model.model.decoder.project_out.cpu()
-    # if hasattr(model.model.decoder,
-    #            'project_in') and model.model.decoder.project_in:
-    #     model.model.decoder.project_in = model.model.decoder.project_in.cpu()
-    # torch.cuda.empty_cache()
-
-    # outs = torch.zeros_like(inps)
-    # attention_mask = cache['attention_mask']
+    layers = model.model.layers
 
     print('Ready.')
 
@@ -126,7 +73,7 @@ def opt_sequential_proxy(model, dev, args, proxy_layers, load_H):
 
         # Load H & Quantize
         for name in subset:
-            fname = f'{load_H}/H_model.decoder.layers.{i}.{name}.pt'
+            fname = f'{load_H}/H_model.layers.{i}.{name}.pt'
             del quant_method[name].H
             quant_method[name].H = torch.load(fname, 
                     map_location=quant_method[name].layer.weight.device).to(torch.float32)
@@ -137,7 +84,7 @@ def opt_sequential_proxy(model, dev, args, proxy_layers, load_H):
                                 preproc_proj=False, preproc_proj_extra=0)
             if args.quant == 'gptq':
                 quant_method[name].fasterquant(groupsize=args.groupsize)
-                quantizers['model.decoder.layers.%d.%s' %
+                quantizers['model.layers.%d.%s' %
                            (i, name)] = quant_method[name].quantizer
             if args.quant == 'gptq_updown':
                 quant_method[name].fasterquant_updown(groupsize=args.groupsize)
@@ -176,9 +123,6 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
-    # parser.add_argument('model',
-    #                     type=str,
-    #                     help='OPT model to load; pass `facebook/opt-X`.')
     parser.add_argument('dataset',
                         type=str,
                         choices=['wikitext2', 'ptb', 'c4'],
@@ -225,29 +169,25 @@ if __name__ == '__main__':
     toterr, totlay, tot_time = 0, 0, 0
 
     dict_proxy_layers = {
-        # "opt-125m": [2, 6, 10],
-        # "opt-350m": [4, 12, 20],
-        # "opt-1.3b": [4, 12, 20],
-        # "opt-2.7b": [4, 16, 28]
-        "opt-125m": [2],
-        "opt-350m": [12],
-        "opt-1.3b": [20],
-        "opt-2.7b": [16]
+        "llama-7b": [32],
+        "llama-2-7b-hf": [32],
+        "llama-13b": [40],
+        "llama-2-13b-hf": [40],
+        "llama-30b": [60],
+        "llama-65b": [80]
     }
 
-    for argmodel in ["opt-125m", "opt-350m", "opt-1.3b", "opt-2.7b"]:
-    #for argmodel in tqdm(["opt-2.7b"]):
-        # for H_method in ["nearest", "gptq", "allbal"]:
+    for argmodel in ["llama-2-7b-hf", "llama-2-13b-hf"]:
         for H_method in ["nearest", "gptq"]:
             print("H_method: {H_method}")
             # load_H = f"slurm/H_run2/{argmodel}_{H_method}_W4_preproc1"
             print("WARNING: need to specify load_H path")
             load_H = ""
             print(f"load_H: {load_H}")
-            model = get_opt(f"facebook/{argmodel}")
+            model = get_llama(f"meta-llama/{argmodel}")
             model.eval()
             tick = time.time()
-            quantizers, errors = opt_sequential_proxy(
+            quantizers, errors llama_sequential_proxy(
                 model, DEV, args, dict_proxy_layers[argmodel], load_H)
             tot_time += time.time() - tick
             print(f"Specific proxy (w^T H w) error: {sum(errors)}, len:{len(errors)}")
