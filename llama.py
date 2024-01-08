@@ -181,21 +181,24 @@ def llama_eval(model, testenc, dev):
     dtype = next(iter(model.parameters())).dtype
     inps = torch.zeros((nsamples, model.seqlen, model.config.hidden_size),
                        dtype=dtype, device=dev)
-    cache = {'i': 0, 'attention_mask': None}
+    forward_arg_names = ["attention_mask", "position_ids"]
+
+    cache = {"i": 0, "alibi": None}
+
+    class CatcherExit(Exception):
+        pass
 
     class Catcher(nn.Module):
-
         def __init__(self, module):
             super().__init__()
             self.module = module
 
         def forward(self, inp, **kwargs):
-            inps[cache['i']] = inp
-            cache['i'] += 1
-            cache['attention_mask'] = kwargs['attention_mask']
-            cache['position_ids'] = kwargs['position_ids']
-            raise ValueError
-        
+            cache["i"] += 1
+            for forward_arg_name in forward_arg_names:
+                cache[forward_arg_name] = kwargs.get(forward_arg_name)
+            raise CatcherExit()
+
     layers[0] = Catcher(layers[0])
     for i in range(nsamples):
         batch = testenc[:, (i * model.seqlen):((i + 1) * model.seqlen)].to(dev)
