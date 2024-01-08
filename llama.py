@@ -26,7 +26,7 @@ def get_llama(model):
     return model
 
 @torch.no_grad()
-def llama_sequential(model, dataloader,args, dev):
+def llama_sequential(model, dataloader, dev, args):
     print('Starting ...')
 
     use_cache = model.config.use_cache
