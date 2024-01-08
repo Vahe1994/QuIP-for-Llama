@@ -460,6 +460,8 @@ if __name__ == '__main__':
     parser.add_argument('--unbiased', action='store_true', help='Unbiased.')
     parser.add_argument('--incoh_processing', action='store_true', help='Incoherence processing.')
     parser.add_argument('--lazy_batch', action='store_true', help='Lazy batch updates in blocks as used in GPTQ.')
+    parser.add_argument("--wandb", action="store_true", help="Whether to use wandb or store locally.")
+    parser.add_argument('--exp_name', type=str, default='7b_model_2b', help='wandb exp_name.')
 
     args = parser.parse_args()
     if args.incoh_processing:
@@ -469,6 +471,16 @@ if __name__ == '__main__':
         args.proj_extra = 0
         args.qfn = 'b'
 
+    if args.wandb:
+        wandb.init(
+            dir=os.getcwd(),
+            name=args.exp_name,
+            config={a: getattr(args, a) for a in dir(args) if not a.startswith("_")},
+            settings=wandb.Settings(code_dir="."),
+            project=os.environ.get("WANDB_PROJECT", f"LLAMA2_PPL"),
+            entity=os.environ.get("WANDB_ENTITY", "rock-and-roll"),
+            save_code=True,
+        )
     if args.load:
         model = load_quant(args.model, args.load)
         model.eval()
