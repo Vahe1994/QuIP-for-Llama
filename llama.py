@@ -440,7 +440,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('model', type=str, help='Llama model to load. Pass HF or local path.')
-    parser.add_argument('dataset', type=str, choices=['wikitext2', 'ptb', 'c4'], help='Calibration dataset.')
+    parser.add_argument('dataset', type=str, choices=['wikitext2', 'ptb', 'c4','pajama'], help='Calibration dataset.')
     parser.add_argument('--seed', type=int, default=0, help='Sampling seed for the dataset.')
     parser.add_argument('--nsamples', type=int, default=128, help='Number of samples from the dataset to use.')
     parser.add_argument('--percdamp', type=float, default=.01, help='Percentage of the average Hessian diagonal to use for dampening.')
