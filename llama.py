@@ -492,7 +492,7 @@ if __name__ == '__main__':
             args.dataset,
             nsamples=args.nsamples,
             seed=args.seed,
-            model_path=args.model_path,
+            model_path=args.model,
             seqlen=model.seqlen,
         )
         print("Data loaded")
