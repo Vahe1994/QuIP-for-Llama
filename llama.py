@@ -488,8 +488,14 @@ if __name__ == '__main__':
         model = get_llama(args.model)
         model.eval()
 
-        dataloader, _ = get_loaders(args.dataset, nsamples=args.nsamples, seed=args.seed, model=args.model, seqlen=model.seqlen)
-
+        dataloader = get_loaders(
+            args.dataset,
+            nsamples=args.nsamples,
+            seed=args.seed,
+            model_path=args.model_path,
+            seqlen=model.seqlen,
+        )
+        print("Data loaded")
         if args.wbits < 16:
             if args.qfn=='b': assert args.pre_proj is True
             print(f"Preprocessing flags: gptqH: {args.pre_gptqH}, rescale:{args.pre_rescale}, "

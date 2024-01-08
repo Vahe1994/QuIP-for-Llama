@@ -153,6 +153,7 @@ def main():
         print("Loading quantized model ...")
         lm.model = load_quant(lm.model, args.load)
         lm.model.seqlen = args.model_seqlen
+        lm.model.eval()
 
     results = evaluator.simple_evaluate(
         model=lm,
