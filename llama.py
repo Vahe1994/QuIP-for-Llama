@@ -8,6 +8,7 @@ from bal import Balance
 from near import Nearest
 from modelutils import *
 from quant import *
+import wandb
 
 from tqdm import tqdm
 
@@ -242,7 +243,8 @@ def llama_eval(model, testenc, dev):
         nlls.append(neg_log_likelihood)
     ppl = torch.exp(torch.stack(nlls).sum() / (nsamples * model.seqlen))
     print(ppl.item())
-
+    if args.wandb:
+        wandb.log({args.dataset_name: ppl.item()})
     model.config.use_cache = use_cache
 
 
@@ -496,7 +498,14 @@ if __name__ == '__main__':
             torch.save(model.state_dict(), args.save)
 
         if not args.proxy_only:
-            for dataset in ['wikitext2', 'ptb-new', 'c4-new']:
-                dataloder, testloader = get_loaders(dataset, seed=args.seed, model=args.model, seqlen=model.seqlen)
-                print(dataset)
-                llama_eval(model, testloader, DEV)
+            datasets = ["wikitext2", "ptb", "c4"]
+            for dataset in datasets:
+                testloader = get_loaders(
+                    dataset,
+                    seed=args.seed,
+                    model_path=args.model_path,
+                    seqlen=model.seqlen,
+                    eval_mode=True,
+                )
+                args.dataset_name = dataset
+                llama_eval(model, testloader, model.device)
